@@ -456,7 +456,10 @@ function Library.new(title, cfgFolder)
                         clickBtn.MouseLeave:Connect(function() tw(hoverBg, {BackgroundTransparency = 1}, tweenFast) end)
                         clickBtn.MouseButton1Click:Connect(function()
                             setToggle(not toggled)
-                            if callback then callback({Toggle = toggled}) end
+                            if callback then
+                                local cOk, cErr = pcall(callback, {Toggle = toggled})
+                                if not cOk then warn("[FGlass] Toggle callback error (" .. elemName .. "): " .. tostring(cErr)) end
+                            end
                         end)
 
                         local function repositionExtras()
@@ -1249,27 +1252,32 @@ function Library.new(title, cfgFolder)
         for id, entry in pairs(data) do
             local elem = lib._elements[id]
             if elem then
-                if elem.type == "Toggle" and entry.value ~= nil then
-                    if elem._setToggle then elem._setToggle(entry.value) end
-                    if elem.callback then elem.callback({Toggle = entry.value}) end
-                elseif elem.type == "Slider" and entry.value ~= nil then
-                    if elem._updateSlider then elem._updateSlider(entry.value) end
-                    if elem.callback then elem.callback({Slider = entry.value}) end
-                elseif elem.type == "Dropdown" and entry.value ~= nil then
-                    if elem._setDropdown then elem._setDropdown(entry.value) end
-                    if elem.callback then elem.callback({Dropdown = entry.value}) end
-                elseif elem.type == "TextBox" and entry.value ~= nil then
-                    if elem._setText then elem._setText(entry.value) end
-                    if elem.callback then elem.callback({Text = entry.value}) end
-                elseif elem.type == "Combo" and entry.value ~= nil then
-                    if elem._setCombo then elem._setCombo(entry.value) end
-                    local r = {}
-                    for _, v in ipairs(entry.value) do table.insert(r, v) end
-                    if elem.callback then elem.callback({Combo = r}) end
-                end
-                if entry.keybind and elem._setKeybind then elem._setKeybind(entry.keybind.key) end
-                if entry.color and elem._setColor then
-                    elem._setColor(Color3.fromRGB(entry.color[1], entry.color[2], entry.color[3]))
+                local cbOk, cbErr = pcall(function()
+                    if elem.type == "Toggle" and entry.value ~= nil then
+                        if elem._setToggle then elem._setToggle(entry.value) end
+                        if elem.callback then elem.callback({Toggle = entry.value}) end
+                    elseif elem.type == "Slider" and entry.value ~= nil then
+                        if elem._updateSlider then elem._updateSlider(entry.value) end
+                        if elem.callback then elem.callback({Slider = entry.value}) end
+                    elseif elem.type == "Dropdown" and entry.value ~= nil then
+                        if elem._setDropdown then elem._setDropdown(entry.value) end
+                        if elem.callback then elem.callback({Dropdown = entry.value}) end
+                    elseif elem.type == "TextBox" and entry.value ~= nil then
+                        if elem._setText then elem._setText(entry.value) end
+                        if elem.callback then elem.callback({Text = entry.value}) end
+                    elseif elem.type == "Combo" and entry.value ~= nil then
+                        if elem._setCombo then elem._setCombo(entry.value) end
+                        local r = {}
+                        for _, v in ipairs(entry.value) do table.insert(r, v) end
+                        if elem.callback then elem.callback({Combo = r}) end
+                    end
+                    if entry.keybind and elem._setKeybind then elem._setKeybind(entry.keybind.key) end
+                    if entry.color and elem._setColor then
+                        elem._setColor(Color3.fromRGB(entry.color[1], entry.color[2], entry.color[3]))
+                    end
+                end)
+                if not cbOk then
+                    warn("[FGlass] Config callback error for " .. tostring(id) .. ": " .. tostring(cbErr))
                 end
             end
         end
