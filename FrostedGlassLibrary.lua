@@ -66,6 +66,21 @@ local MARGIN_Y  = 25
 
 local Library = {}
 
+local function fgNotify(title, text)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {Title = title, Text = text, Duration = 6})
+    end)
+end
+
+local function safeCb(cb, arg, label)
+    if not cb then return end
+    local ok, err = pcall(cb, arg)
+    if not ok then
+        warn("[FGlass] callback error (" .. tostring(label) .. "): " .. tostring(err))
+        fgNotify("FGlass ERROR: " .. tostring(label), tostring(err))
+    end
+end
+
 function Library.new(title, cfgFolder)
     local lib = {}
     lib._title    = title or "Menu"
@@ -456,10 +471,7 @@ function Library.new(title, cfgFolder)
                         clickBtn.MouseLeave:Connect(function() tw(hoverBg, {BackgroundTransparency = 1}, tweenFast) end)
                         clickBtn.MouseButton1Click:Connect(function()
                             setToggle(not toggled)
-                            if callback then
-                                local cOk, cErr = pcall(callback, {Toggle = toggled})
-                                if not cOk then warn("[FGlass] Toggle callback error (" .. elemName .. "): " .. tostring(cErr)) end
-                            end
+                            safeCb(callback, {Toggle = toggled}, "Toggle:" .. elemName)
                         end)
 
                         local function repositionExtras()
@@ -573,7 +585,7 @@ function Library.new(title, cfgFolder)
                             local f = (v - minV) / math.max(maxV - minV, 1)
                             fill.Size = UDim2.new(f, 0, 1, 0)
                             knob.Position = UDim2.new(f, 0, 0.5, 0)
-                            if callback then callback({Slider = v}) end
+                            safeCb(callback, {Slider = v}, "Slider:" .. elemName)
                         end
 
                         elemData._updateSlider = function(v)
@@ -693,7 +705,7 @@ function Library.new(title, cfgFolder)
                                 selected = opt; elemData.value = opt
                                 dropBtn.Text = "  " .. opt
                                 dropOpen = false; dropList.Visible = false
-                                if callback then callback({Dropdown = opt}) end
+                                safeCb(callback, {Dropdown = opt}, "Dropdown:" .. elemName)
                             end)
                         end
 
@@ -760,7 +772,7 @@ function Library.new(title, cfgFolder)
                         btn.MouseButton1Click:Connect(function()
                             tw(btn, {BackgroundTransparency = 0.2})
                             task.delay(0.1, function() tw(btn, {BackgroundTransparency = 0.65}) end)
-                            if callback then callback(true) end
+                            safeCb(callback, true, "Button:" .. elemName)
                         end)
 
                     elseif elemType == "TextBox" then
@@ -808,7 +820,7 @@ function Library.new(title, cfgFolder)
 
                         tbox.FocusLost:Connect(function()
                             elemData.value = tbox.Text
-                            if callback then callback({Text = tbox.Text}) end
+                            safeCb(callback, {Text = tbox.Text}, "TextBox:" .. elemName)
                         end)
                         elemData._setText = function(v) tbox.Text = v; elemData.value = v end
 
@@ -948,7 +960,7 @@ function Library.new(title, cfgFolder)
                                 chk.Text = selectedSet[opt] and "\226\152\145" or "\226\152\144"
                                 chk.TextColor3 = selectedSet[opt] and theme.accent or C.textDim
                                 updateComboLabel()
-                                if callback then callback({Combo = getComboResult()}) end
+                                safeCb(callback, {Combo = getComboResult()}, "Combo:" .. elemName)
                             end)
                         end
 
@@ -1040,10 +1052,10 @@ function Library.new(title, cfgFolder)
                             if not gpe and currentKey and input.KeyCode == currentKey then
                                 if mode == "Hold" then
                                     active = true
-                                    if keybindCallback then keybindCallback({Active=true, Key=currentKey.Name}) end
+                                    safeCb(keybindCallback, {Active=true, Key=currentKey.Name}, "Keybind:" .. elemName)
                                 elseif mode == "Toggle" then
                                     active = not active
-                                    if keybindCallback then keybindCallback({Active=active, Key=currentKey.Name}) end
+                                    safeCb(keybindCallback, {Active=active, Key=currentKey.Name}, "Keybind:" .. elemName)
                                 end
                             end
                         end)
@@ -1051,7 +1063,7 @@ function Library.new(title, cfgFolder)
                         UserInputService.InputEnded:Connect(function(input)
                             if currentKey and input.KeyCode == currentKey and mode == "Hold" then
                                 active = false
-                                if keybindCallback then keybindCallback({Active=false, Key=currentKey.Name}) end
+                                safeCb(keybindCallback, {Active=false, Key=currentKey.Name}, "Keybind:" .. elemName)
                             end
                         end)
 
@@ -1176,7 +1188,7 @@ function Library.new(title, cfgFolder)
                             colInd.BackgroundColor3 = currentColor
                             elemData._colorPicker = {color = currentColor}
                             picker.Visible = false; pickerOpen = false
-                            if colorCallback then colorCallback({Color = currentColor}) end
+                            safeCb(colorCallback, {Color = currentColor}, "Color:" .. elemName)
                         end)
 
                         colBtn.MouseButton1Click:Connect(function()
